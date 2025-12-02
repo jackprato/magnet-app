@@ -23,8 +23,26 @@ export default function MagnetBuilder() {
   const [gradientEnd, setGradientEnd] = useState('#FFFFFF');
   const [gradientDirection, setGradientDirection] = useState('horizontal');
   const [selectedTeam, setSelectedTeam] = useState('Custom');
+  const [fontLoaded, setFontLoaded] = useState(false);
   const canvasRef = useRef(null);
 
+  // Load LEMON MILK font on component mount
+  useEffect(() => {
+    const loadDefaultFont = async () => {
+      try {
+        const fontFace = new FontFace('LEMONMILK', 'url(/fonts/LEMONMILK-Bold.otf)');
+        await fontFace.load();
+        document.fonts.add(fontFace);
+        setFontLoaded(true);
+      } catch (error) {
+        console.error('Error loading font:', error);
+        setFontLoaded(true); // Continue anyway with fallback
+      }
+    };
+    loadDefaultFont();
+  }, []);
+
+  // AFL Team Presets
   const aflTeams = {
     'Custom': { primary: '#000000', secondary: '#FFFFFF' },
     'Adelaide Crows': { primary: '#002B5C', secondary: '#FFD200' },
@@ -77,10 +95,10 @@ export default function MagnetBuilder() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const fontFace = new FontFace('CustomFont', `url(${event.target.result})`);
+        const fontFace = new FontFace('CustomUploadedFont', `url(${event.target.result})`);
         fontFace.load().then((loaded) => {
           document.fonts.add(loaded);
-          setCustomFont('CustomFont');
+          setCustomFont('CustomUploadedFont');
         });
       };
       reader.readAsDataURL(file);
@@ -93,28 +111,96 @@ export default function MagnetBuilder() {
     const lines = textInput.split('\n').filter(line => line.trim());
     const newPlayers = [];
     
-    lines.forEach((line, index) => {
-      let match = line.match(/^(\d+)[\s\t]+(.+)$/);
+    // Common compound surname prefixes in AFL
+    const compoundPrefixes = ['de', 'van', 'von', 'st', 'mc', 'mac', 'o\''];
+    
+    const extractSurname = (fullName) => {
+      const nameParts = fullName.trim().split(/\s+/);
+      if (nameParts.length === 1) {
+        return nameParts[0].toUpperCase();
+      }
       
-      if (!match) {
-        const parts = line.split(/[\t\s]{2,}/);
-        if (parts.length >= 2 && !isNaN(parts[0])) {
-          match = [null, parts[0], parts.slice(1).join(' ')];
+      // Check for compound surnames (e.g., "Jordan De Goey" -> "DE GOEY")
+      // If second-to-last word is a compound prefix, include it
+      if (nameParts.length >= 2) {
+        const secondLastWord = nameParts[nameParts.length - 2].toLowerCase();
+        if (compoundPrefixes.some(prefix => secondLastWord.startsWith(prefix))) {
+          return `${nameParts[nameParts.length - 2]} ${nameParts[nameParts.length - 1]}`.toUpperCase();
         }
       }
       
-      if (match && match[1] && match[2]) {
-        const fullName = match[2].trim().replace(/\s+/g, ' ').replace(/^\d+/, '').trim();
-        const surname = fullName.toUpperCase();
-        
-        if (surname) {
-          newPlayers.push({
-            id: Date.now() + index,
-            number: match[1],
-            surname: surname,
-            fullName: fullName
-          });
+      // Otherwise just return last word
+      return nameParts[nameParts.length - 1].toUpperCase();
+    };
+    
+    lines.forEach((line, index) => {
+      let number = '';
+      let surname = '';
+      
+      // Skip header rows and non-player rows
+      if (line.includes('Player') || line.includes('Grade') || line.includes('DOB') || 
+          line.includes('Goals') || line.includes('Coach') || line.includes('Votes') ||
+          line.includes('Games') || line.includes('B\'low') || line.includes('Prior') ||
+          line.includes('Total') || line.includes('Original Club') || line.includes('Honours')) {
+        return;
+      }
+      
+      // Split by tabs
+      const tableParts = line.split('\t');
+      
+      let nameColumn = -1;
+      let foundNumber = '';
+      
+      // Check first column for number
+      if (tableParts[0] && tableParts[0].trim()) {
+        const numMatch = tableParts[0].trim().match(/^(\d+)/);
+        if (numMatch) {
+          foundNumber = numMatch[1];
+          // Check if column 1 is 'r' or 'b' marker
+          if (tableParts[1] && (tableParts[1].trim() === 'r' || tableParts[1].trim() === 'b')) {
+            nameColumn = 2;
+          } else {
+            nameColumn = 1;
+          }
         }
+      }
+      
+      // If no number found in first column, check if there's a name in column 1
+      if (!foundNumber) {
+        if (tableParts[0] && tableParts[0].trim() === '' && tableParts[1] && tableParts[1].trim()) {
+          // Empty first column, name in second column - no number player
+          foundNumber = '0';
+          nameColumn = 1;
+        }
+      }
+      
+      // Extract surname from the name column
+      if (nameColumn >= 0 && tableParts[nameColumn]) {
+        const fullName = tableParts[nameColumn].trim();
+        // Make sure it's actually a name (has letters, not just numbers)
+        if (fullName && !fullName.match(/^\d+$/) && fullName.length > 2) {
+          surname = extractSurname(fullName);
+          number = foundNumber;
+        }
+      }
+      
+      // Fallback: Try Draft Guru list format: "1. Jordan Dawson"
+      if (!number || !surname) {
+        const match = line.match(/^(\d+)[\.\s]+(.+?)(?:\t|$)/);
+        if (match) {
+          number = match[1];
+          const fullName = match[2].trim();
+          surname = extractSurname(fullName);
+        }
+      }
+      
+      if (number && surname) {
+        newPlayers.push({
+          id: Date.now() + index,
+          number: number,
+          surname: surname,
+          fullName: surname
+        });
       }
     });
     
@@ -157,15 +243,12 @@ export default function MagnetBuilder() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     
-    const scale = window.devicePixelRatio || 2;
-    canvas.width = magnetWidth * scale;
-    canvas.height = magnetHeight * scale;
-    canvas.style.width = magnetWidth + 'px';
-    canvas.style.height = magnetHeight + 'px';
-    ctx.scale(scale, scale);
+    canvas.width = magnetWidth;
+    canvas.height = magnetHeight;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw background - either gradient or base image
     if (useGradient) {
       let gradient;
       if (gradientDirection === 'horizontal') {
@@ -180,14 +263,13 @@ export default function MagnetBuilder() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, magnetWidth, magnetHeight);
     } else if (baseImage) {
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(baseImage, 0, 0, magnetWidth, magnetHeight);
     } else {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, magnetWidth, magnetHeight);
     }
 
+    // Draw border
     if (borderWidth > 0) {
       ctx.strokeStyle = borderColor;
       ctx.lineWidth = borderWidth;
@@ -198,48 +280,44 @@ export default function MagnetBuilder() {
     ctx.fillStyle = textColor;
     ctx.textBaseline = 'middle';
 
+    // Draw number
     ctx.font = `bold ${numberSize}px ${customFont || 'Arial'}`;
-    ctx.textAlign = 'left';
     ctx.fillText(player.number, numberX, centerY);
 
+    // Calculate diamond position
     const numberWidth = ctx.measureText(player.number).width;
-    const numberRightEdge = numberX + numberWidth;
-    
-    ctx.font = `bold ${nameSize}px ${customFont || 'Arial'}`;
-    
-    const gapBeforeDiamond = 15;
-    const gapAfterDiamond = 15;
-    
-    const diamondCenterX = numberRightEdge + gapBeforeDiamond + (diamondWidth / 2);
+    const diamondCenterX = numberX + numberWidth + 20;
     const diamondCenterY = centerY;
     
+    // Draw diamond separator (proper diamond shape)
     ctx.save();
     ctx.fillStyle = diamondColor;
     ctx.beginPath();
-    ctx.moveTo(diamondCenterX, diamondCenterY - diamondHeight/2);
-    ctx.lineTo(diamondCenterX + diamondWidth/2, diamondCenterY);
-    ctx.lineTo(diamondCenterX, diamondCenterY + diamondHeight/2);
-    ctx.lineTo(diamondCenterX - diamondWidth/2, diamondCenterY);
+    ctx.moveTo(diamondCenterX, diamondCenterY - diamondHeight/2); // Top point
+    ctx.lineTo(diamondCenterX + diamondWidth/2, diamondCenterY); // Right point
+    ctx.lineTo(diamondCenterX, diamondCenterY + diamondHeight/2); // Bottom point
+    ctx.lineTo(diamondCenterX - diamondWidth/2, diamondCenterY); // Left point
     ctx.closePath();
     ctx.fill();
     ctx.restore();
 
-    const diamondRightEdge = diamondCenterX + (diamondWidth / 2);
-    const nameStartX = diamondRightEdge + gapAfterDiamond;
+    // Calculate name position
+    const diamondRightEdge = diamondCenterX + (Math.sqrt(diamondWidth * diamondWidth + diamondHeight * diamondHeight) / 2);
+    const nameStartX = diamondRightEdge + 15;
 
+    // Draw surname
     ctx.font = `bold ${nameSize}px ${customFont || 'Arial'}`;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
     ctx.fillText(player.surname, nameStartX, centerY);
 
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL();
   };
 
   useEffect(() => {
     if (selectedPlayer) {
       drawMagnet(selectedPlayer);
     }
-  }, [selectedPlayer, baseImage, customFont, magnetWidth, magnetHeight, numberSize, nameSize, textColor, borderColor, borderWidth, numberX, diamondWidth, diamondHeight, diamondColor, useGradient, gradientStart, gradientEnd, gradientDirection]);
+  }, [selectedPlayer, baseImage, customFont, fontLoaded, magnetWidth, magnetHeight, numberSize, nameSize, textColor, borderColor, borderWidth, numberX, diamondWidth, diamondHeight, diamondColor, useGradient, gradientStart, gradientEnd, gradientDirection]);
 
   const exportSingleMagnet = () => {
     if (!selectedPlayer) {
@@ -276,13 +354,16 @@ export default function MagnetBuilder() {
         <h1 className="text-3xl font-bold mb-8 text-gray-800">AFL Magnet Builder</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Panel - Controls */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Background Section */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Upload size={20} />
                 Background
               </h2>
               
+              {/* Team Preset Selector */}
               <div className="mb-4">
                 <label className="text-sm font-medium text-gray-700 block mb-2">AFL Team Preset</label>
                 <select
@@ -296,6 +377,7 @@ export default function MagnetBuilder() {
                 </select>
               </div>
 
+              {/* Toggle between Image and Gradient */}
               <div className="mb-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -321,35 +403,57 @@ export default function MagnetBuilder() {
               )}
             </div>
 
+            {/* Font Upload */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Type size={20} />
-                Upload Custom Font
+                Font
               </h2>
-              <input
-                type="file"
-                accept=".ttf,.otf,.woff,.woff2"
-                onChange={handleFontUpload}
-                className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
+              
+              <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>Default:</strong> LEMON MILK Bold
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">
+                  {customFont ? 'Custom font active' : 'Upload different font (optional)'}
+                </label>
+                <input
+                  type="file"
+                  accept=".ttf,.otf,.woff,.woff2"
+                  onChange={handleFontUpload}
+                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {customFont && (
+                  <button
+                    onClick={() => setCustomFont(null)}
+                    className="mt-2 text-sm text-red-600 hover:text-red-800"
+                  >
+                    Reset to LEMON MILK
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Player List Input */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4">Add Players</h2>
               
               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                <p className="font-medium text-blue-900 mb-1">Import from Footywire:</p>
+                <p className="font-medium text-blue-900 mb-1">Import from Draft Guru:</p>
                 <ol className="text-blue-800 space-y-1 ml-4 list-decimal text-xs">
-                  <li>Go to team page</li>
-                  <li>Select & copy player table</li>
-                  <li>Paste below</li>
+                  <li>Go to Draft Guru team list</li>
+                  <li>Select & copy the numbered player list</li>
+                  <li>Paste below (e.g., "1. Jordan Dawson")</li>
                 </ol>
               </div>
 
               <textarea
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder="Paste here...&#10;&#10;23	Jack Smith&#10;14	Taylor Adams"
+                placeholder="Paste here...&#10;&#10;1. Jordan Dawson&#10;2. Rory Laird&#10;3. Izak Rankine"
                 className="w-full h-32 p-3 border rounded-lg text-sm mb-3 font-mono"
               />
               <div className="flex gap-2">
@@ -369,6 +473,7 @@ export default function MagnetBuilder() {
               </div>
             </div>
 
+            {/* Player List */}
             <div className="bg-white rounded-lg shadow p-6 max-h-96 overflow-y-auto">
               <h2 className="text-lg font-semibold mb-4">Players ({players.length})</h2>
               {players.map(player => (
@@ -412,7 +517,9 @@ export default function MagnetBuilder() {
             </div>
           </div>
 
+          {/* Right Panel - Preview & Customization */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Preview */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">
@@ -451,9 +558,11 @@ export default function MagnetBuilder() {
               </div>
             </div>
 
+            {/* Customization Controls */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4">Customize Layout</h2>
               
+              {/* Gradient Controls */}
               {useGradient && (
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h3 className="text-sm font-semibold text-blue-900 mb-3">Gradient Settings</h3>
