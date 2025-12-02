@@ -324,7 +324,82 @@ export default function MagnetBuilder() {
       alert('Please select a player to export');
       return;
     }
-    const dataUrl = drawMagnet(selectedPlayer);
+    
+    // Create a temporary canvas at full resolution for export
+    const exportCanvas = document.createElement('canvas');
+    const exportCtx = exportCanvas.getContext('2d');
+    const scale = 3; // Higher scale for crisp exports
+    
+    exportCanvas.width = magnetWidth * scale;
+    exportCanvas.height = magnetHeight * scale;
+    exportCtx.scale(scale, scale);
+    
+    // Draw background
+    if (useGradient) {
+      let gradient;
+      if (gradientDirection === 'horizontal') {
+        gradient = exportCtx.createLinearGradient(0, 0, magnetWidth, 0);
+      } else if (gradientDirection === 'vertical') {
+        gradient = exportCtx.createLinearGradient(0, 0, 0, magnetHeight);
+      } else if (gradientDirection === 'diagonal') {
+        gradient = exportCtx.createLinearGradient(0, 0, magnetWidth, magnetHeight);
+      }
+      gradient.addColorStop(0, gradientStart);
+      gradient.addColorStop(1, gradientEnd);
+      exportCtx.fillStyle = gradient;
+      exportCtx.fillRect(0, 0, magnetWidth, magnetHeight);
+    } else if (baseImage) {
+      exportCtx.imageSmoothingEnabled = true;
+      exportCtx.imageSmoothingQuality = 'high';
+      exportCtx.drawImage(baseImage, 0, 0, magnetWidth, magnetHeight);
+    } else {
+      exportCtx.fillStyle = '#FFFFFF';
+      exportCtx.fillRect(0, 0, magnetWidth, magnetHeight);
+    }
+    
+    // Draw border
+    if (borderWidth > 0) {
+      exportCtx.strokeStyle = borderColor;
+      exportCtx.lineWidth = borderWidth;
+      exportCtx.strokeRect(borderWidth / 2, borderWidth / 2, magnetWidth - borderWidth, magnetHeight - borderWidth);
+    }
+    
+    const centerY = magnetHeight / 2;
+    const fontToUse = customFont || 'LEMONMILK';
+    
+    exportCtx.fillStyle = textColor;
+    exportCtx.textBaseline = 'middle';
+    exportCtx.font = `bold ${numberSize}px ${fontToUse}`;
+    exportCtx.textAlign = 'left';
+    exportCtx.fillText(selectedPlayer.number, numberX, centerY);
+    
+    const numberWidth = exportCtx.measureText(selectedPlayer.number).width;
+    const numberRightEdge = numberX + numberWidth;
+    const gapBeforeDiamond = 15;
+    const gapAfterDiamond = 15;
+    const diamondCenterX = numberRightEdge + gapBeforeDiamond + (diamondWidth / 2);
+    const diamondCenterY = centerY;
+    
+    exportCtx.save();
+    exportCtx.fillStyle = diamondColor;
+    exportCtx.beginPath();
+    exportCtx.moveTo(diamondCenterX, diamondCenterY - diamondHeight/2);
+    exportCtx.lineTo(diamondCenterX + diamondWidth/2, diamondCenterY);
+    exportCtx.lineTo(diamondCenterX, diamondCenterY + diamondHeight/2);
+    exportCtx.lineTo(diamondCenterX - diamondWidth/2, diamondCenterY);
+    exportCtx.closePath();
+    exportCtx.fill();
+    exportCtx.restore();
+    
+    const diamondRightEdge = diamondCenterX + (diamondWidth / 2);
+    const nameStartX = diamondRightEdge + gapAfterDiamond;
+    
+    exportCtx.font = `bold ${nameSize}px ${fontToUse}`;
+    exportCtx.textAlign = 'left';
+    exportCtx.textBaseline = 'middle';
+    exportCtx.fillText(selectedPlayer.surname, nameStartX, centerY);
+    
+    const dataUrl = exportCanvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = `${selectedPlayer.number}_${selectedPlayer.surname}.png`;
     link.href = dataUrl;
@@ -339,7 +414,80 @@ export default function MagnetBuilder() {
 
     players.forEach((player, index) => {
       setTimeout(() => {
-        const dataUrl = drawMagnet(player);
+        // Create high-res export canvas
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+        const scale = 3;
+        
+        exportCanvas.width = magnetWidth * scale;
+        exportCanvas.height = magnetHeight * scale;
+        exportCtx.scale(scale, scale);
+        
+        // Draw background
+        if (useGradient) {
+          let gradient;
+          if (gradientDirection === 'horizontal') {
+            gradient = exportCtx.createLinearGradient(0, 0, magnetWidth, 0);
+          } else if (gradientDirection === 'vertical') {
+            gradient = exportCtx.createLinearGradient(0, 0, 0, magnetHeight);
+          } else if (gradientDirection === 'diagonal') {
+            gradient = exportCtx.createLinearGradient(0, 0, magnetWidth, magnetHeight);
+          }
+          gradient.addColorStop(0, gradientStart);
+          gradient.addColorStop(1, gradientEnd);
+          exportCtx.fillStyle = gradient;
+          exportCtx.fillRect(0, 0, magnetWidth, magnetHeight);
+        } else if (baseImage) {
+          exportCtx.imageSmoothingEnabled = true;
+          exportCtx.imageSmoothingQuality = 'high';
+          exportCtx.drawImage(baseImage, 0, 0, magnetWidth, magnetHeight);
+        } else {
+          exportCtx.fillStyle = '#FFFFFF';
+          exportCtx.fillRect(0, 0, magnetWidth, magnetHeight);
+        }
+        
+        if (borderWidth > 0) {
+          exportCtx.strokeStyle = borderColor;
+          exportCtx.lineWidth = borderWidth;
+          exportCtx.strokeRect(borderWidth / 2, borderWidth / 2, magnetWidth - borderWidth, magnetHeight - borderWidth);
+        }
+        
+        const centerY = magnetHeight / 2;
+        const fontToUse = customFont || 'LEMONMILK';
+        
+        exportCtx.fillStyle = textColor;
+        exportCtx.textBaseline = 'middle';
+        exportCtx.font = `bold ${numberSize}px ${fontToUse}`;
+        exportCtx.textAlign = 'left';
+        exportCtx.fillText(player.number, numberX, centerY);
+        
+        const numberWidth = exportCtx.measureText(player.number).width;
+        const numberRightEdge = numberX + numberWidth;
+        const gapBeforeDiamond = 15;
+        const gapAfterDiamond = 15;
+        const diamondCenterX = numberRightEdge + gapBeforeDiamond + (diamondWidth / 2);
+        const diamondCenterY = centerY;
+        
+        exportCtx.save();
+        exportCtx.fillStyle = diamondColor;
+        exportCtx.beginPath();
+        exportCtx.moveTo(diamondCenterX, diamondCenterY - diamondHeight/2);
+        exportCtx.lineTo(diamondCenterX + diamondWidth/2, diamondCenterY);
+        exportCtx.lineTo(diamondCenterX, diamondCenterY + diamondHeight/2);
+        exportCtx.lineTo(diamondCenterX - diamondWidth/2, diamondCenterY);
+        exportCtx.closePath();
+        exportCtx.fill();
+        exportCtx.restore();
+        
+        const diamondRightEdge = diamondCenterX + (diamondWidth / 2);
+        const nameStartX = diamondRightEdge + gapAfterDiamond;
+        
+        exportCtx.font = `bold ${nameSize}px ${fontToUse}`;
+        exportCtx.textAlign = 'left';
+        exportCtx.textBaseline = 'middle';
+        exportCtx.fillText(player.surname, nameStartX, centerY);
+        
+        const dataUrl = exportCanvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.download = `${player.number}_${player.surname}.png`;
         link.href = dataUrl;
