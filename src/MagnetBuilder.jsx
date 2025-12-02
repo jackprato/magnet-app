@@ -29,24 +29,24 @@ export default function MagnetBuilder() {
   // AFL Team Presets
   const aflTeams = {
     'Custom': { primary: '#000000', secondary: '#FFFFFF' },
-    'Adelaide Crows': { primary: '#002B5C', secondary: '#FFD200' },
-    'Brisbane Lions': { primary: '#A30046', secondary: '#FDB515' },
-    'Carlton': { primary: '#0E1E2D', secondary: '#B7B7B7' },
-    'Collingwood': { primary: '#000000', secondary: '#FFFFFF' },
-    'Essendon': { primary: '#CC2031', secondary: '#000000' },
-    'Fremantle': { primary: '#2A1A54', secondary: '#FFFFFF' },
-    'Geelong Cats': { primary: '#1C3C63', secondary: '#FFFFFF' },
-    'Gold Coast Suns': { primary: '#B8282E', secondary: '#FDB71A' },
-    'GWS Giants': { primary: '#F47920', secondary: '#0C1D2E' },
-    'Hawthorn': { primary: '#4D2004', secondary: '#FDB71A' },
-    'Melbourne': { primary: '#CC2031', secondary: '#0C1D2E' },
-    'North Melbourne': { primary: '#003F87', secondary: '#FFFFFF' },
-    'Port Adelaide': { primary: '#008AAB', secondary: '#000000' },
-    'Richmond': { primary: '#FFD200', secondary: '#000000' },
-    'St Kilda': { primary: '#ED0F05', secondary: '#000000' },
-    'Sydney Swans': { primary: '#ED171F', secondary: '#FFFFFF' },
-    'West Coast Eagles': { primary: '#002B5C', secondary: '#FDB71A' },
-    'Western Bulldogs': { primary: '#014896', secondary: '#E40019' }
+    'Adelaide Crows': { primary: '#002B5C', secondary: '#00234A' },
+    'Brisbane Lions': { primary: '#A30046', secondary: '#7A0035' },
+    'Carlton': { primary: '#0E1E2D', secondary: '#000000' },
+    'Collingwood': { primary: '#000000', secondary: '#1A1A1A' },
+    'Essendon': { primary: '#CC2031', secondary: '#9A1826' },
+    'Fremantle': { primary: '#2A1A54', secondary: '#1D1240' },
+    'Geelong Cats': { primary: '#1C3C63', secondary: '#0F2844' },
+    'Gold Coast Suns': { primary: '#B8282E', secondary: '#8A1E23' },
+    'GWS Giants': { primary: '#F47920', secondary: '#C55E19' },
+    'Hawthorn': { primary: '#4D2004', secondary: '#2E1302' },
+    'Melbourne': { primary: '#CC2031', secondary: '#9A1826' },
+    'North Melbourne': { primary: '#003F87', secondary: '#002C5E' },
+    'Port Adelaide': { primary: '#008AAB', secondary: '#006680' },
+    'Richmond': { primary: '#FFD200', secondary: '#CCA800' },
+    'St Kilda': { primary: '#ED0F05', secondary: '#B50C04' },
+    'Sydney Swans': { primary: '#ED171F', secondary: '#B51218' },
+    'West Coast Eagles': { primary: '#002B5C', secondary: '#00234A' },
+    'Western Bulldogs': { primary: '#014896', secondary: '#013570' }
   };
 
   const handleTeamSelect = (teamName) => {
@@ -83,6 +83,9 @@ export default function MagnetBuilder() {
         fontFace.load().then((loaded) => {
           document.fonts.add(loaded);
           setCustomFont('CustomUploadedFont');
+        }).catch((error) => {
+          console.error('Error loading font:', error);
+          alert('Error loading font. Please try a different font file.');
         });
       };
       reader.readAsDataURL(file);
@@ -552,6 +555,7 @@ export default function MagnetBuilder() {
                   onChange={handleFontUpload}
                   className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
+                <p className="mt-1 text-xs text-gray-500">Accepts: TTF, OTF, WOFF, WOFF2</p>
                 {customFont ? (
                   <p className="mt-2 text-sm text-green-600">✓ Custom font loaded</p>
                 ) : (
