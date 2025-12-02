@@ -35,7 +35,8 @@ export default function MagnetBuilder() {
         document.fonts.add(fontFace);
         setFontLoaded(true);
       } catch (error) {
-        console.error('Error loading font:', error);
+        console.error('Error loading LEMON MILK font:', error);
+        console.log('Falling back to Arial');
         setFontLoaded(true); // Continue anyway with fallback
       }
     };
