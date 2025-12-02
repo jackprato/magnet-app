@@ -18,30 +18,13 @@ export default function MagnetBuilder() {
   const [diamondWidth, setDiamondWidth] = useState(28);
   const [diamondHeight, setDiamondHeight] = useState(14);
   const [diamondColor, setDiamondColor] = useState('#C5A572');
+  const [diamondGap, setDiamondGap] = useState(20);
   const [useGradient, setUseGradient] = useState(false);
   const [gradientStart, setGradientStart] = useState('#000000');
   const [gradientEnd, setGradientEnd] = useState('#FFFFFF');
   const [gradientDirection, setGradientDirection] = useState('horizontal');
   const [selectedTeam, setSelectedTeam] = useState('Custom');
-  const [fontLoaded, setFontLoaded] = useState(false);
   const canvasRef = useRef(null);
-
-  // Load LEMON MILK font on component mount
-  useEffect(() => {
-    const loadDefaultFont = async () => {
-      try {
-        const fontFace = new FontFace('LEMONMILK', 'url(/fonts/LEMONMILK-Bold.otf)');
-        await fontFace.load();
-        document.fonts.add(fontFace);
-        setFontLoaded(true);
-      } catch (error) {
-        console.error('Error loading LEMON MILK font:', error);
-        console.log('Falling back to Arial');
-        setFontLoaded(true); // Continue anyway with fallback
-      }
-    };
-    loadDefaultFont();
-  }, []);
 
   // AFL Team Presets
   const aflTeams = {
@@ -318,7 +301,7 @@ export default function MagnetBuilder() {
     if (selectedPlayer) {
       drawMagnet(selectedPlayer);
     }
-  }, [selectedPlayer, baseImage, customFont, fontLoaded, magnetWidth, magnetHeight, numberSize, nameSize, textColor, borderColor, borderWidth, numberX, diamondWidth, diamondHeight, diamondColor, useGradient, gradientStart, gradientEnd, gradientDirection]);
+  }, [selectedPlayer, baseImage, customFont, magnetWidth, magnetHeight, numberSize, nameSize, textColor, borderColor, borderWidth, numberX, diamondWidth, diamondHeight, diamondColor, diamondGap, useGradient, gradientStart, gradientEnd, gradientDirection]);
 
   const exportSingleMagnet = () => {
     if (!selectedPlayer) {
@@ -376,7 +359,7 @@ export default function MagnetBuilder() {
     
     const numberWidth = exportCtx.measureText(selectedPlayer.number).width;
     const numberRightEdge = numberX + numberWidth;
-    const gapBeforeDiamond = 15;
+    const gapBeforeDiamond = diamondGap;
     const gapAfterDiamond = 15;
     const diamondCenterX = numberRightEdge + gapBeforeDiamond + (diamondWidth / 2);
     const diamondCenterY = centerY;
@@ -464,7 +447,7 @@ export default function MagnetBuilder() {
         
         const numberWidth = exportCtx.measureText(player.number).width;
         const numberRightEdge = numberX + numberWidth;
-        const gapBeforeDiamond = 15;
+        const gapBeforeDiamond = diamondGap;
         const gapAfterDiamond = 15;
         const diamondCenterX = numberRightEdge + gapBeforeDiamond + (diamondWidth / 2);
         const diamondCenterY = centerY;
@@ -558,16 +541,10 @@ export default function MagnetBuilder() {
                 <Type size={20} />
                 Font
               </h2>
-              
-              <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  <strong>Default:</strong> LEMON MILK Bold
-                </p>
-              </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-2">
-                  {customFont ? 'Custom font active' : 'Upload different font (optional)'}
+                  Upload font file (required)
                 </label>
                 <input
                   type="file"
@@ -575,13 +552,10 @@ export default function MagnetBuilder() {
                   onChange={handleFontUpload}
                   className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
-                {customFont && (
-                  <button
-                    onClick={() => setCustomFont(null)}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800"
-                  >
-                    Reset to LEMON MILK
-                  </button>
+                {customFont ? (
+                  <p className="mt-2 text-sm text-green-600">✓ Custom font loaded</p>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-500">Using Arial fallback</p>
                 )}
               </div>
             </div>
@@ -817,6 +791,15 @@ export default function MagnetBuilder() {
                     type="number"
                     value={diamondHeight}
                     onChange={(e) => setDiamondHeight(parseInt(e.target.value))}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Diamond Gap (from number)</label>
+                  <input
+                    type="number"
+                    value={diamondGap}
+                    onChange={(e) => setDiamondGap(parseInt(e.target.value))}
                     className="w-full p-2 border rounded"
                   />
                 </div>
