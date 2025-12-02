@@ -52,8 +52,7 @@ export default function MagnetBuilder() {
   const handleTeamSelect = (teamName) => {
     setSelectedTeam(teamName);
     if (teamName !== 'Custom') {
-      const teams = leagueTab === 'AFL' ? aflTeams : vflTeams;
-      const team = teams[teamName];
+      const team = aflTeams[teamName];
       setGradientStart(team.primary);
       setGradientEnd(team.secondary);
       setUseGradient(true);
@@ -499,47 +498,15 @@ export default function MagnetBuilder() {
                 Background
               </h2>
               
-              {/* League Tabs */}
-              <div className="mb-4 flex gap-2 border-b">
-                <button
-                  onClick={() => {
-                    setLeagueTab('AFL');
-                    setSelectedTeam('Custom');
-                  }}
-                  className={`px-4 py-2 font-medium transition ${
-                    leagueTab === 'AFL' 
-                      ? 'border-b-2 border-blue-600 text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  AFL
-                </button>
-                <button
-                  onClick={() => {
-                    setLeagueTab('VFL');
-                    setSelectedTeam('Custom');
-                  }}
-                  className={`px-4 py-2 font-medium transition ${
-                    leagueTab === 'VFL' 
-                      ? 'border-b-2 border-blue-600 text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  VFL
-                </button>
-              </div>
-
               {/* Team Preset Selector */}
               <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 block mb-2">
-                  {leagueTab} Team Preset
-                </label>
+                <label className="text-sm font-medium text-gray-700 block mb-2">AFL Team Preset</label>
                 <select
                   value={selectedTeam}
                   onChange={(e) => handleTeamSelect(e.target.value)}
                   className="w-full p-2 border rounded-lg text-sm"
                 >
-                  {Object.keys(leagueTab === 'AFL' ? aflTeams : vflTeams).map(team => (
+                  {Object.keys(aflTeams).map(team => (
                     <option key={team} value={team}>{team}</option>
                   ))}
                 </select>
